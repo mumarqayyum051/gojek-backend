@@ -2,9 +2,11 @@ const { expressjwt } = require("express-jwt");
 const db = require(".././db");
 let secret = process.env.JWT_SECRET;
 // @ts-ignore
+// @ts-ignore
 const { BadRequestResponse } = require("express-http-response");
 
 let UnauthorizedResponse =
+  // @ts-ignore
   // @ts-ignore
   require("express-http-response").UnauthorizedResponse;
 function getTokenFromHeader(req) {
@@ -20,9 +22,10 @@ function getTokenFromHeader(req) {
   return null;
 }
 
-const admin = (req, res, next) => {
+// @ts-ignore
+const superAdmin = (req, res, next) => {
   console.log("Sdsd");
-  let query = `SELECT * FROM users WHERE id = ${req.auth.id}`;
+  let query = `SELECT * FROM users WHERE username = '${req.auth.username}'`;
   // @ts-ignore
 
   db.query(query, (err, result) => {
@@ -31,6 +34,15 @@ const admin = (req, res, next) => {
       return next(new BadRequestResponse(err));
     } else {
       if (result.length) {
+        if (result[0].userType !== "SuperAdmin") {
+          // @ts-ignore
+          return next(
+            // @ts-ignore
+            new UnauthorizedResponse(
+              "You are not authorized to do this operation",
+            ),
+          );
+        }
         delete result[0].password;
         delete result[0].type;
         result[0].token = req.headers.authorization.split(" ")[1];
@@ -44,6 +56,7 @@ const admin = (req, res, next) => {
   });
 };
 
+// @ts-ignore
 const readPermission = (req, res, next) => {
   console.log(req.auth.id);
   let query = `select permissions.*, users.userType from permissions inner join users  on  users.id = permissions.userId  where users.username = '${req.auth.username}'`;
@@ -59,6 +72,7 @@ const readPermission = (req, res, next) => {
         } else {
           // @ts-ignore
           return next(
+            // @ts-ignore
             new UnauthorizedResponse(
               "You are not authorized to do this operation",
             ),
@@ -72,6 +86,7 @@ const readPermission = (req, res, next) => {
   });
 };
 
+// @ts-ignore
 const createPermission = (req, res, next) => {
   console.log(req.auth);
   let query = `select permissions.*, users.userType from permissions inner join users  on  users.id = permissions.userId  where users.username = '${req.auth.username}'`;
@@ -89,6 +104,7 @@ const createPermission = (req, res, next) => {
         } else {
           // @ts-ignore
           return next(
+            // @ts-ignore
             new UnauthorizedResponse(
               "You are not authorized to do this operation",
             ),
@@ -102,6 +118,7 @@ const createPermission = (req, res, next) => {
   });
 };
 
+// @ts-ignore
 const updatePermission = (req, res, next) => {
   let query = `select permissions.*, users.userType from permissions inner join users  on  users.id = permissions.userId  where users.username = '${req.auth.username}'`;
   // @ts-ignore
@@ -125,6 +142,7 @@ const updatePermission = (req, res, next) => {
   });
 };
 
+// @ts-ignore
 const deletePermission = (req, res, next) => {
   let query = `select permissions.*, users.userType from permissions inner join users  on  users.id = permissions.userId  where users.username = '${req.auth.username}'`;
   // @ts-ignore
@@ -162,7 +180,7 @@ let auth = {
     getToken: getTokenFromHeader,
     algorithms: ["HS256"],
   }),
-  admin,
+  superAdmin,
   readPermission,
   createPermission,
   updatePermission,

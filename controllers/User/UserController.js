@@ -1,4 +1,3 @@
-// @ts-nocheck
 const db = require("../../db");
 const bcrypt = require("bcrypt");
 const passport = require("passport");
@@ -11,21 +10,44 @@ let {
   OkResponse,
   BadRequestResponse,
   UnauthorizedResponse,
+  // @ts-ignore
 } = require("express-http-response");
+const NotFoundResponse = require("express-http-response/lib/http/NotFoundResponse");
 
+// @ts-ignore
 const createUser = async (req, res, next) => {
-  const { username, password } = req.body.user || req.body;
-  if (!username || !password) {
-    return next("Please fill all the fields", 400);
+  const {
+    username,
+    password,
+    allowRead,
+    allowCreate,
+    allowUpdate,
+    allowDelete,
+  } = req.body.user || req.body;
+  if (
+    !username ||
+    !password ||
+    !validateBool(allowCreate) ||
+    !validateBool(allowRead) ||
+    !validateBool(allowUpdate) ||
+    !validateBool(allowDelete)
+  ) {
+    return next(
+      // @ts-ignore
+      new BadRequestResponse("Please correctly fill all the fields ", 400),
+    );
   }
+
   db.query(
-    "SELECT * FROM users WHERE username = '" + username + "'",
+    `select * from users where username = '${username}'`,
     async (err, result) => {
       if (err) {
+        // @ts-ignore
         return next(new BadRequestResponse(err, 400));
       }
       if (result.length) {
-        return next(new BadRequestResponse("User already exists", 400));
+        // @ts-ignore
+        return next(new BadRequestResponse("User already exists", 409));
       }
       const hashedPassword = await hashPassword(password);
       const user = {
@@ -35,11 +57,21 @@ const createUser = async (req, res, next) => {
         isDeleted: 0,
         userType: "AdminUser",
       };
-      db.query(`INSERT INTO users SET ?`, user, (err, result) => {
+      db.query("INSERT INTO users SET ?", user, (err, result) => {
         if (err) {
+          // @ts-ignore
           return next(new BadRequestResponse(err, 400));
         }
-        return next(new OkResponse("User Created Successfully", 200));
+        db.query(
+          `insert into permissions (userId, allowRead, allowCreate, allowUpdate, allowDelete) values (${result.insertId},${allowRead},${allowCreate},${allowUpdate},${allowDelete})`,
+          (err, result) => {
+            if (err) {
+              // @ts-ignore
+              return next(new BadRequestResponse(err, 400));
+            }
+            return next(new OkResponse("User has been created", 200));
+          },
+        );
       });
     },
   );
@@ -52,58 +84,93 @@ const login = (req, res, next) => {
     function (err, user, info) {
       console.log(user, err, info);
       if (err) {
+        // @ts-ignore
         next(new BadRequestResponse(err, 400));
       }
       if (!user) {
         console.log("User not found");
+        // @ts-ignore
         next(new UnauthorizedResponse(info.message, 401));
       } else {
         const token = generateToken(user.username, user.password);
         delete user.password;
 
+        // @ts-ignore
         next(new OkResponse({ ...user, token: token }, 200));
       }
     },
   )(req, res, next);
 };
 
+// @ts-ignore
 const updateUser = (req, res, next) => {
-  const { username, password } = req.body.user || req.body;
+  const {
+    username,
+    password,
+    allowRead,
+    allowCreate,
+    allowUpdate,
+    allowDelete,
+  } = req.body.user || req.body;
   const { id } = req.params;
-  if (!username || !password) {
+  if (
+    !username ||
+    !password ||
+    !validateBool(allowCreate) ||
+    !validateBool(allowRead) ||
+    !validateBool(allowUpdate) ||
+    !validateBool(allowDelete)
+  ) {
     return next(new BadRequestResponse("Please fill all the fields", 400));
   }
   if (!id) {
+    // @ts-ignore
     return next(new BadRequestResponse("Please provide user id", 400));
   }
-  db.query(`SELECT * FROM users WHERE id = '${id}'`, async (err, result) => {
+  // @ts-ignore
+  db.query(`select * from users where id= '${id}'`, async (err, result) => {
     if (err) {
-      return next(new BadRequestResponse("Something went wrong", 400));
+      // @ts-ignore
+      return next(new BadRequestResponse(err, 400));
     }
-    console.log(result);
     if (result.length == 0) {
       return next(
-        new BadRequestResponse("No user found against the given Id", 400),
+        // @ts-ignore
+        new NotFoundResponse("No user found against the given Id", 409),
       );
     }
-
-    if (result.length > 0) {
-      console.log(result[0].userType);
+    if (result.length) {
       if (result[0].userType === "SuperAdmin") {
+        // @ts-ignore
         return next(
-          new BadRequestResponse("You cannot update SuperAdmin info", 400),
+          // @ts-ignore
+          new BadRequestResponse("You cannot update SuperAdmin", 400),
         );
       }
       const hashedPassword = await hashPassword(password);
-      console.log(username);
-      const query = `UPDATE users SET username = '${username}' , password = '${hashedPassword}'  WHERE id = '${id}'`;
-      console.log(query);
-      db.query(query, (err, result) => {
+      const user = {
+        username,
+        password: hashedPassword,
+        isActive: 1,
+        isDeleted: 0,
+        userType: "AdminUser",
+      };
+      db.query(`update users set ? where id=${id}`, user, (err, result) => {
         if (err) {
-          console.log(err);
+          // @ts-ignore
           return next(new BadRequestResponse(err, 400));
         }
-        return next(new OkResponse("User updated successfully", 200));
+        db.query(
+          `update permissions set allowRead=${allowRead},allowCreate=${allowCreate},allowUpdate=${allowUpdate},allowDelete=${allowDelete} where userId=${id}`,
+          (err, result) => {
+            if (err) {
+              // @ts-ignore
+              return next(new BadRequestResponse(err, 400));
+            }
+            // @ts-ignore
+            return next(new OkResponse("User has been updated", 200));
+          },
+        );
       });
     }
   });
@@ -113,15 +180,18 @@ const updateUser = (req, res, next) => {
 const deleteUser = (req, res, next) => {
   const { id } = req.params;
   if (!id) {
+    // @ts-ignore
     return next(new BadRequestResponse("Please provide user id", 400));
   }
   db.query(`SELECT * FROM users WHERE id = '${id}'`, async (err, result) => {
     if (err) {
+      // @ts-ignore
       return next(new BadRequestResponse("Something went wrong", 400));
     }
     console.log(result);
     if (result.length == 0) {
       return next(
+        // @ts-ignore
         new BadRequestResponse("No user found against the given Id", 400),
       );
     }
@@ -130,27 +200,33 @@ const deleteUser = (req, res, next) => {
       console.log(result[0].userType);
       if (result[0].userType === "SuperAdmin") {
         return next(
+          // @ts-ignore
           new BadRequestResponse("You cannot delete SuperAdmin", 400),
         );
       }
       const query = `UPDATE users SET isDeleted = 1, isActive=0 WHERE id = '${id}'`;
       console.log(query);
+      // @ts-ignore
       db.query(query, (err, result) => {
         if (err) {
           console.log(err);
+          // @ts-ignore
           return next(new BadRequestResponse(err, 400));
         }
+        // @ts-ignore
         return next(new OkResponse("User deleted successfully", 200));
       });
     }
   });
 };
 
+// @ts-ignore
 const getAll = (req, res, next) => {
   const query = `SELECT * FROM users where isActive=1 and isDeleted=0`;
   db.query(query, (err, result) => {
     if (err) {
       console.log(err);
+      // @ts-ignore
       return next(new BadRequestResponse(err, 400));
     }
     if (result.length > 0) {
@@ -158,6 +234,7 @@ const getAll = (req, res, next) => {
         delete user.password;
       }
     }
+    // @ts-ignore
     return next(new OkResponse(result, 200));
   });
 };
@@ -173,9 +250,18 @@ const hashPassword = async (password) => {
   }
 };
 
+const validateBool = (value) => {
+  if (value === 0 || value === 1) {
+    return true;
+  }
+  return false;
+};
+
 const generateToken = (username, password) => {
+  // @ts-ignore
   return JWT.sign({ username, password }, process.env.JWT_SECRET);
 };
+
 module.exports = {
   login,
   createUser,
