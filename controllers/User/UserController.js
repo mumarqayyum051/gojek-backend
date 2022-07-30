@@ -173,14 +173,11 @@ const hashPassword = async (password) => {
   }
 };
 
-const generateToken = (email, id) => {
-  return JWT.sign({ email, id }, process.env.JWT_SECRET);
+const generateToken = (username, password) => {
+  return JWT.sign({ username, password }, process.env.JWT_SECRET);
 };
 module.exports = {
-  register,
-  verifyOTP,
   login,
-  adminLogin,
   createUser,
   deleteUser,
   updateUser,
