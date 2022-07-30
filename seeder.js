@@ -15,7 +15,7 @@ async function seeder() {
       bcrypt.genSalt(saltRounds, function (err, salt) {
         bcrypt.hash("superadmin123", salt, function (err, hash) {
           db.query(
-            `INSERT INTO users (username, password,isActive,isDeleted,userType) VALUES ('superadmin','${hash}',  1, 0, 'SuperAdmin')`,
+            `INSERT INTO users (username, password,userType) VALUES ('superadmin','${hash}', 'SuperAdmin')`,
             (err, result) => {
               const d = `${result.insertId}`;
               if (err) {

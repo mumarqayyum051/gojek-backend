@@ -54,7 +54,7 @@ const createUser = async (req, res, next) => {
         username,
         password: hashedPassword,
         isActive: 1,
-        isDeleted: 0,
+
         userType: "AdminUser",
       };
       db.query("INSERT INTO users SET ?", user, (err, result) => {
@@ -152,7 +152,7 @@ const updateUser = (req, res, next) => {
         username,
         password: hashedPassword,
         isActive: 1,
-        isDeleted: 0,
+
         userType: "AdminUser",
       };
       db.query(`update users set ? where id=${id}`, user, (err, result) => {
