@@ -21,4 +21,5 @@ app.use(passport.initialize());
 app.use(express.static(path.join(__dirname, "/public")));
 
 app.use("/api/users", require("./controllers/User/UserRoutes"));
+app.use("/api/feed", require("./controllers/Feed/FeedRoutes"));
 app.use(httpResponse.Middleware);

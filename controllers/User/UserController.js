@@ -53,7 +53,6 @@ const createUser = async (req, res, next) => {
       const user = {
         username,
         password: hashedPassword,
-        isActive: 1,
 
         userType: "AdminUser",
       };
@@ -151,7 +150,6 @@ const updateUser = (req, res, next) => {
       const user = {
         username,
         password: hashedPassword,
-        isActive: 1,
 
         userType: "AdminUser",
       };

@@ -47,6 +47,7 @@ const superAdmin = (req, res, next) => {
         delete result[0].type;
         result[0].token = req.headers.authorization.split(" ")[1];
         req.admin = result[0];
+        req.authorizedUser = result[0];
         return next();
       } else {
         // @ts-ignore
@@ -68,6 +69,8 @@ const readPermission = (req, res, next) => {
     } else {
       if (result.length) {
         if (result[0].allowRead == 1) {
+          req.admin = result[0];
+          req.authorizedUser = result[0];
           return next();
         } else {
           // @ts-ignore
@@ -100,6 +103,7 @@ const createPermission = (req, res, next) => {
     } else {
       if (result.length) {
         if (result[0].allowCreate == 1) {
+          req.authorizedUser = result[0];
           return next();
         } else {
           // @ts-ignore
@@ -129,6 +133,7 @@ const updatePermission = (req, res, next) => {
     } else {
       if (result.length) {
         if (result[0].allowUpdate == 1) {
+          req.authorizedUser = result[0];
           return next();
         } else {
           // @ts-ignore
@@ -153,6 +158,7 @@ const deletePermission = (req, res, next) => {
     } else {
       if (result.length) {
         if (result[0].allowDelete == 1) {
+          req.authorizedUser = result[0];
           return next();
         } else {
           // @ts-ignore

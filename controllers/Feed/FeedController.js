@@ -2,23 +2,28 @@ const { OkResponse, BadRequestResponse } = require("express-http-response");
 const db = require("../../db");
 
 const createPost = (req, res, next) => {
-  const { description, postedAt } = req.body.post || req.body;
-  if (!description || !postedAt) {
-    return next(
-      // @ts-ignore
-      new BadRequestResponse("Please correctly fill all the fields ", 400),
-    );
-  }
-
-  const query = `insert into posts (description, postedAt, postedBy) values ('${post.description}', '${post.postedAt}', '${post.postedBy}')`;
-  db.query(query, (err, result) => {
-    if (err) {
-      // @ts-ignore
-      return next(new BadRequestResponse(err, 400));
+  let { description, postedAt } = req.body.post || req.body;
+  try {
+    if (!description || !postedAt) {
+      return next(
+        // @ts-ignore
+        new BadRequestResponse("Please correctly fill all the fields ", 400),
+      );
     }
-    // @ts-ignore
-    return next(new OkResponse("Post has been published successfully", 200));
-  });
+
+    description = description.replace(/'/g, "\\'");
+    const query = `insert into posts (description, postedAt, postedBy) values ('${description}', '${postedAt}', '${req.authorizedUser.userId}')`;
+    db.query(query, (err, result) => {
+      if (err) {
+        // @ts-ignore
+        return next(new BadRequestResponse(err, 400));
+      }
+      // @ts-ignore
+      return next(new OkResponse("Post has been published successfully", 200));
+    });
+  } catch (e) {
+    console.log(e);
+  }
 };
 
 const deletePost = (req, res, next) => {
@@ -55,7 +60,7 @@ const updatePost = (req, res, next) => {
     return next(new BadRequestResponse("Please provide a post id", 400));
   }
 
-  const query = `update posts set description = '${description}', postedAt = '${postedAt}', updatedBy = '${req.user.id}' where id = ${id}`;
+  const query = `update posts set description = '${description}', postedAt = '${postedAt}', updatedBy = '${req.authorizedUser.userId}' where id = ${id}`;
   db.query(query, (err, result) => {
     if (err) {
       // @ts-ignore
