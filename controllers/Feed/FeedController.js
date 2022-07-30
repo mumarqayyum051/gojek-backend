@@ -47,9 +47,9 @@ const deletePost = (req, res, next) => {
 };
 
 const updatePost = (req, res, next) => {
-  const { description, postedAt } = req.body.post || req.body;
+  let { description, updatedAt } = req.body.post || req.body;
   const { id } = req.params;
-  if (!description || !postedAt) {
+  if (!description || !updatedAt) {
     return next(
       // @ts-ignore
       new BadRequestResponse("Please correctly fill all the fields ", 400),
@@ -60,7 +60,9 @@ const updatePost = (req, res, next) => {
     return next(new BadRequestResponse("Please provide a post id", 400));
   }
 
-  const query = `update posts set description = '${description}', postedAt = '${postedAt}', updatedBy = '${req.authorizedUser.userId}' where id = ${id}`;
+  description = description.replace(/'/g, "\\'");
+
+  const query = `update posts set description = '${description}', updatedAt = '${updatedAt}', updatedBy = '${req.authorizedUser.userId}' where id = ${id}`;
   db.query(query, (err, result) => {
     if (err) {
       // @ts-ignore

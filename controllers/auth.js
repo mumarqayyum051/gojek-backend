@@ -60,6 +60,7 @@ const superAdmin = (req, res, next) => {
 // @ts-ignore
 const readPermission = (req, res, next) => {
   console.log(req.auth.id);
+  console.log(req.auth.id);
   let query = `select permissions.*, users.userType from permissions inner join users  on  users.id = permissions.userId  where users.username = '${req.auth.username}'`;
   // @ts-ignore
   db.query(query, (err, result) => {
@@ -91,7 +92,8 @@ const readPermission = (req, res, next) => {
 
 // @ts-ignore
 const createPermission = (req, res, next) => {
-  console.log(req.auth);
+  console.log(req.auth.username);
+  console.log("dsadasd");
   let query = `select permissions.*, users.userType from permissions inner join users  on  users.id = permissions.userId  where users.username = '${req.auth.username}'`;
   console.log(query);
   // @ts-ignore
