@@ -183,46 +183,17 @@ const deleteUser = (req, res, next) => {
     // @ts-ignore
     return next(new BadRequestResponse("Please provide user id", 400));
   }
-  db.query(`SELECT * FROM users WHERE id = '${id}'`, async (err, result) => {
+  db.query(`delete from users where id = ${id}`, (err, result) => {
     if (err) {
-      // @ts-ignore
-      return next(new BadRequestResponse("Something went wrong", 400));
+      return next(new BadRequestResponse(err, 400));
     }
-    console.log(result);
-    if (result.length == 0) {
-      return next(
-        // @ts-ignore
-        new BadRequestResponse("No user found against the given Id", 400),
-      );
-    }
-
-    if (result.length > 0) {
-      console.log(result[0].userType);
-      if (result[0].userType === "SuperAdmin") {
-        return next(
-          // @ts-ignore
-          new BadRequestResponse("You cannot delete SuperAdmin", 400),
-        );
-      }
-      const query = `UPDATE users SET isDeleted = 1, isActive=0 WHERE id = '${id}'`;
-      console.log(query);
-      // @ts-ignore
-      db.query(query, (err, result) => {
-        if (err) {
-          console.log(err);
-          // @ts-ignore
-          return next(new BadRequestResponse(err, 400));
-        }
-        // @ts-ignore
-        return next(new OkResponse("User deleted successfully", 200));
-      });
-    }
+    return next(new OkResponse("User has been deleted", 200));
   });
 };
 
 // @ts-ignore
 const getAll = (req, res, next) => {
-  const query = `SELECT * FROM users where isActive=1 and isDeleted=0`;
+  const query = `select users.username, users.id, users.userType,permissions.allowRead, permissions.allowCreate, permissions.allowDelete, permissions.allowUpdate, permissions.id as permissionId from users inner join permissions on users.id = permissions.userId`;
   db.query(query, (err, result) => {
     if (err) {
       console.log(err);
