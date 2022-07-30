@@ -1,3 +1,4 @@
+// @ts-nocheck
 const db = require("../../db");
 const bcrypt = require("bcrypt");
 const passport = require("passport");
@@ -42,65 +43,6 @@ const createUser = async (req, res, next) => {
       });
     },
   );
-};
-const register = async (req, res, next) => {
-  const { username, email, address, password } = req.body.user || req.body;
-  if (!username || !email || !address || !password) {
-    return next(new BadRequestResponse("Please fill all the fields", 400));
-  }
-  db.query(
-    `SELECT * FROM users WHERE email = '${email}'`,
-    async (err, result) => {
-      if (err) {
-        return next(new BadRequestResponse("Something went wrong", 400));
-      }
-      console.log(result);
-      if (result.length) {
-        return next(new BadRequestResponse("User already exists"));
-      }
-
-      const { OTP, OTPExpiry } = setOTP();
-      console.log(OTP, OTPExpiry);
-      const hashedPassword = await hashPassword(password);
-      console.log(hashedPassword);
-
-      const query = `INSERT INTO users (username,email,address, password, OTP, OTPExpiry) VALUES ('${username}', '${email}', '${address}', '${hashedPassword}', '${OTP}', '${OTPExpiry}')`;
-
-      db.query(query, (err, result) => {
-        if (err) {
-          console.log(err);
-          return next(new BadRequestResponse(err, 400));
-        } else {
-          return next(new OkResponse("User Registered Successfully", 200));
-        }
-      });
-    },
-  );
-};
-
-const verifyOTP = (req, res, next) => {
-  const { email, otp } = req.body.user;
-  console.log(email, otp);
-  const query = `SELECT * FROM users WHERE email = '${email}' AND otp = '${otp}' AND otp_expiry > ${Date.now()}`;
-  db.query(query, (err, result) => {
-    if (err) {
-      console.log(err);
-      return next(new BadRequestResponse(err, 400));
-    }
-    if (result.length === 0) {
-      return next(new UnauthorizedResponse("Invalid OTP or Expired"));
-    }
-    if (result.length > 0) {
-      const query = `UPDATE users SET otp = '', otp_expiry = '', isEmailVerified = TRUE, isOTPVerified = TRUE WHERE email = '${email}'`;
-      db.query(query, (err, result) => {
-        if (err) {
-          console.log(err);
-          return next(new BadRequestResponse(err));
-        }
-        return next(new OkResponse("OTP Verified"));
-      });
-    }
-  });
 };
 
 const login = (req, res, next) => {
@@ -202,52 +144,6 @@ const deleteUser = (req, res, next) => {
       });
     }
   });
-};
-const adminLogin = (req, res, next) => {
-  const { email, password } = req.body.user || req.body;
-  const query = `SELECT * FROM users WHERE email = '${email}'`;
-  db.query(query, (err, result) => {
-    console.log(result);
-    console.log(result[0].id);
-    if (err) {
-      console.log(err);
-      return next(new BadRequestResponse(err));
-    }
-    if (result.length === 0) {
-      return next(new UnauthorizedResponse("User doesn't exist"));
-    }
-    if (result.length > 0) {
-      console.log(password, result[0].password);
-      bcrypt.compare(
-        password.toString(),
-        result[0].password.toString(),
-        function (err, _result) {
-          console.log(result);
-          if (err) {
-            console.log(err);
-            return next(new BadRequestResponse(err));
-          }
-          if (_result) {
-            const token = generateToken(email, result[0].id);
-            delete result[0].password;
-            next(new OkResponse({ ...result[0], token: token }, 200));
-          } else {
-            res
-              .status(401)
-              .send(new UnauthorizedResponse("Invalid Password", 401));
-          }
-        },
-      );
-    }
-  });
-};
-const setOTP = () => {
-  const OTP = Math.floor(1000 + Math.random() * 9000);
-  const date = new Date();
-  const OTPExpiry = date.setMinutes(
-    date.getMinutes() + +process.env.OTP_EXPIRY_TIME,
-  );
-  return { OTP, OTPExpiry };
 };
 
 const getAll = (req, res, next) => {
