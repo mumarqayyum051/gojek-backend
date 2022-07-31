@@ -2,14 +2,16 @@ const { OkResponse, BadRequestResponse } = require("express-http-response");
 const db = require("../../db");
 
 const createPost = (req, res, next) => {
-  let { description, postedAt } = req.body.post || req.body;
+  let { description } = req.body.post || req.body;
   try {
-    if (!description || !postedAt) {
+    if (!description) {
       return next(
         // @ts-ignore
         new BadRequestResponse("Please correctly fill all the fields ", 400),
       );
     }
+
+    const postedAt = new Date();
 
     description = description.replace(/'/g, "\\'");
     const query = `insert into posts (description, postedAt, postedBy) values ('${description}', '${postedAt}', '${req.authorizedUser.userId}')`;
@@ -47,9 +49,9 @@ const deletePost = (req, res, next) => {
 };
 
 const updatePost = (req, res, next) => {
-  let { description, updatedAt } = req.body.post || req.body;
+  let { description } = req.body.post || req.body;
   const { id } = req.params;
-  if (!description || !updatedAt) {
+  if (!description) {
     return next(
       // @ts-ignore
       new BadRequestResponse("Please correctly fill all the fields ", 400),
@@ -59,7 +61,7 @@ const updatePost = (req, res, next) => {
     // @ts-ignore
     return next(new BadRequestResponse("Please provide a post id", 400));
   }
-
+  const updatedAt = new Date();
   description = description.replace(/'/g, "\\'");
 
   const query = `update posts set description = '${description}', updatedAt = '${updatedAt}', updatedBy = '${req.authorizedUser.userId}' where id = ${id}`;

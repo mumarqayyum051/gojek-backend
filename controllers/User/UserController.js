@@ -47,6 +47,11 @@ const createUser = async (req, res, next) => {
       }
       if (result.length) {
         // @ts-ignore
+        if (result[0].userType === "SuperAdmin") {
+          return next(
+            new BadRequestResponse("Super Admin Can't be created", 400),
+          );
+        }
         return next(new BadRequestResponse("User already exists", 409));
       }
       const hashedPassword = await hashPassword(password);
@@ -219,6 +224,10 @@ const hashPassword = async (password) => {
   }
 };
 
+const userContext = (req, res, next) => {
+  return next(new OkResponse(req.user));
+};
+
 const validateBool = (value) => {
   if (value === 0 || value === 1) {
     return true;
@@ -237,4 +246,5 @@ module.exports = {
   deleteUser,
   updateUser,
   getAll,
+  userContext,
 };

@@ -57,6 +57,24 @@ const superAdmin = (req, res, next) => {
   });
 };
 
+const user = (req, res, next) => {
+  let query = `SELECT * FROM users WHERE username = '${req.auth.username}'`;
+  db.query(query, (err, result) => {
+    if (err) {
+      return next(new BadRequestResponse(err, 400));
+    } else {
+      if (result.length) {
+        delete result[0].password;
+        delete result[0].type;
+        result[0].token = req.headers.authorization.split(" ")[1];
+        req.user = result[0];
+        return next();
+      } else {
+        return res.status(401).send(new UnauthorizedResponse());
+      }
+    }
+  });
+};
 // @ts-ignore
 const readPermission = (req, res, next) => {
   console.log(req.auth.id);
@@ -193,6 +211,7 @@ let auth = {
   createPermission,
   updatePermission,
   deletePermission,
+  user,
 };
 
 module.exports = auth;
