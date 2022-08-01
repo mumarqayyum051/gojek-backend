@@ -9,6 +9,7 @@ const {
   login,
   getAll,
   userContext,
+  getPermissions,
 } = require("./UserController");
 
 router.post("/create", auth.required, auth.superAdmin, createUser);
@@ -17,5 +18,6 @@ router.put("/update/:id", auth.required, auth.superAdmin, updateUser);
 router.delete("/delete/:id", auth.required, auth.superAdmin, deleteUser);
 router.get("/getAll", auth.required, auth.superAdmin, getAll);
 router.get("/context", auth.required, auth.user, userContext);
+router.get("/getPermissions/:id", auth.required, auth.user, getPermissions);
 
 module.exports = router;

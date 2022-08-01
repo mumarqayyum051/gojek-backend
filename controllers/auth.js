@@ -34,6 +34,8 @@ const superAdmin = (req, res, next) => {
       return next(new BadRequestResponse(err));
     } else {
       if (result.length) {
+        console.log(result[0]);
+
         if (result[0].userType !== "SuperAdmin") {
           // @ts-ignore
           return next(
@@ -58,19 +60,42 @@ const superAdmin = (req, res, next) => {
 };
 
 const user = (req, res, next) => {
-  let query = `SELECT * FROM users WHERE username = '${req.auth.username}'`;
+  let query = `SELECT * FROM users inner join permissions on users.id = permissions.userId WHERE username = '${req.auth.username}'`;
   db.query(query, (err, result) => {
     if (err) {
       return next(new BadRequestResponse(err, 400));
     } else {
       if (result.length) {
+        console.log(result[0]);
+
         delete result[0].password;
-        delete result[0].type;
         result[0].token = req.headers.authorization.split(" ")[1];
         req.user = result[0];
         return next();
       } else {
-        return res.status(401).send(new UnauthorizedResponse());
+        return next(new UnauthorizedResponse());
+      }
+    }
+  });
+};
+
+const postPermissions = (req, res, next) => {
+  let query = `select * from users
+inner join permissions on users.Id = permissions.userId
+where users.username = '${req.auth.username}'`;
+  db.query(query, (err, result) => {
+    if (err) {
+      return next(new BadRequestResponse(err, 400));
+    } else {
+      if (result.length) {
+        console.log("user", result[0]);
+
+        delete result[0].password;
+        result[0].token = req.headers.authorization.split(" ")[1];
+        req.authorizedUser = result[0];
+        return next();
+      } else {
+        return next(new UnauthorizedResponse());
       }
     }
   });
@@ -79,7 +104,11 @@ const user = (req, res, next) => {
 const readPermission = (req, res, next) => {
   console.log(req.auth.id);
   console.log(req.auth.id);
-  let query = `select permissions.*, users.userType from permissions inner join users  on  users.id = permissions.userId  where users.username = '${req.auth.username}'`;
+  let query = `select users.username, users.userType, users.Id, posts.postedBy, permissions.allowCreate, permissions.allowRead, permissions.allowUpdate, permissions.allowDelete
+from users
+inner join permissions on users.Id = permissions.userId
+inner join posts on users.Id = posts.postedBy
+where users.username = '${req.auth.username}'`;
   // @ts-ignore
   db.query(query, (err, result) => {
     if (err) {
@@ -87,12 +116,17 @@ const readPermission = (req, res, next) => {
       return next(new BadRequestResponse(err));
     } else {
       if (result.length) {
+        console.log(result[0]);
+
+        console.log(result[0]);
         if (result[0].allowRead == 1) {
           req.admin = result[0];
           req.authorizedUser = result[0];
+
           return next();
         } else {
           // @ts-ignore
+
           return next(
             // @ts-ignore
             new UnauthorizedResponse(
@@ -112,7 +146,11 @@ const readPermission = (req, res, next) => {
 const createPermission = (req, res, next) => {
   console.log(req.auth.username);
   console.log("dsadasd");
-  let query = `select permissions.*, users.userType from permissions inner join users  on  users.id = permissions.userId  where users.username = '${req.auth.username}'`;
+  let query = `select users.username, users.userType, users.Id, posts.postedBy, permissions.allowCreate, permissions.allowRead, permissions.allowUpdate, permissions.allowDelete
+from users
+inner join permissions on users.Id = permissions.userId
+inner join posts on users.Id = posts.postedBy
+where users.username = '${req.auth.username}'`;
   console.log(query);
   // @ts-ignore
   db.query(query, (err, result) => {
@@ -122,8 +160,21 @@ const createPermission = (req, res, next) => {
       return next(new BadRequestResponse(err));
     } else {
       if (result.length) {
+        console.log(result[0]);
+
         if (result[0].allowCreate == 1) {
           req.authorizedUser = result[0];
+          if (
+            result[0].username !== req.auth.username &&
+            result[0].userType == "AdminUser"
+          ) {
+            return next(
+              // @ts-ignore
+              new UnauthorizedResponse(
+                "You are not authorized to do this operation",
+              ),
+            );
+          }
           return next();
         } else {
           // @ts-ignore
@@ -144,7 +195,11 @@ const createPermission = (req, res, next) => {
 
 // @ts-ignore
 const updatePermission = (req, res, next) => {
-  let query = `select permissions.*, users.userType from permissions inner join users  on  users.id = permissions.userId  where users.username = '${req.auth.username}'`;
+  let query = `select users.username, users.userType, users.Id, posts.postedBy, permissions.allowCreate, permissions.allowRead, permissions.allowUpdate, permissions.allowDelete
+from users
+inner join permissions on users.Id = permissions.userId
+inner join posts on users.Id = posts.postedBy
+where users.username = '${req.auth.username}'`;
   // @ts-ignore
   db.query(query, (err, result) => {
     if (err) {
@@ -152,12 +207,29 @@ const updatePermission = (req, res, next) => {
       return next(new BadRequestResponse(err));
     } else {
       if (result.length) {
+        console.log(result[0]);
+
         if (result[0].allowUpdate == 1) {
           req.authorizedUser = result[0];
+          if (
+            result[0].username !== req.auth.username &&
+            result[0].userType == "AdminUser"
+          ) {
+            return next(
+              // @ts-ignore
+              new UnauthorizedResponse(
+                "You are not authorized to do this operation",
+              ),
+            );
+          }
           return next();
         } else {
           // @ts-ignore
-          return next(new UnauthorizedResponse());
+          return next(
+            new UnauthorizedResponse(
+              "You are not authorized to do this operation",
+            ),
+          );
         }
       } else {
         // @ts-ignore
@@ -169,7 +241,11 @@ const updatePermission = (req, res, next) => {
 
 // @ts-ignore
 const deletePermission = (req, res, next) => {
-  let query = `select permissions.*, users.userType from permissions inner join users  on  users.id = permissions.userId  where users.username = '${req.auth.username}'`;
+  let query = `select users.username, users.userType, users.Id, posts.postedBy, permissions.allowCreate, permissions.allowRead, permissions.allowUpdate, permissions.allowDelete
+from users
+inner join permissions on users.Id = permissions.userId
+inner join posts on users.Id = posts.postedBy
+where users.username = '${req.auth.username}'`;
   // @ts-ignore
   db.query(query, (err, result) => {
     if (err) {
@@ -177,12 +253,19 @@ const deletePermission = (req, res, next) => {
       return next(new BadRequestResponse(err));
     } else {
       if (result.length) {
+        console.log("password", result[0]);
+
         if (result[0].allowDelete == 1) {
           req.authorizedUser = result[0];
+
           return next();
         } else {
           // @ts-ignore
-          return next(new UnauthorizedResponse());
+          return next(
+            new UnauthorizedResponse(
+              "You are not authorized to do this operation",
+            ),
+          );
         }
       } else {
         // @ts-ignore
@@ -211,6 +294,7 @@ let auth = {
   createPermission,
   updatePermission,
   deletePermission,
+  postPermissions,
   user,
 };
 

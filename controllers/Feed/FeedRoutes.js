@@ -10,14 +10,14 @@ const {
   getAllPosts,
 } = require("./FeedController");
 
-router.post("/createPost", auth.required, auth.createPermission, createPost);
+router.post("/createPost", auth.required, auth.postPermissions, createPost);
 router.delete(
   "/deletePost/:id",
   auth.required,
-  auth.deletePermission,
+  auth.postPermissions,
   deletePost,
 );
-router.put("/updatePost/:id", auth.required, auth.updatePermission, updatePost);
-router.get("/getAllPosts", auth.required, auth.readPermission, getAllPosts);
+router.put("/updatePost/:id", auth.required, auth.postPermissions, updatePost);
+router.get("/getAllPosts", auth.required, auth.postPermissions, getAllPosts);
 
 module.exports = router;

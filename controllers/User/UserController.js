@@ -108,18 +108,11 @@ const login = (req, res, next) => {
 
 // @ts-ignore
 const updateUser = (req, res, next) => {
-  const {
-    username,
-    password,
-    allowRead,
-    allowCreate,
-    allowUpdate,
-    allowDelete,
-  } = req.body.user || req.body;
+  const { username, allowRead, allowCreate, allowUpdate, allowDelete } =
+    req.body.user || req.body;
   const { id } = req.params;
   if (
     !username ||
-    !password ||
     !validateBool(allowCreate) ||
     !validateBool(allowRead) ||
     !validateBool(allowUpdate) ||
@@ -151,13 +144,22 @@ const updateUser = (req, res, next) => {
           new BadRequestResponse("You cannot update SuperAdmin", 400),
         );
       }
-      const hashedPassword = await hashPassword(password);
-      const user = {
-        username,
-        password: hashedPassword,
+      let user = {};
+      if (req.body.password || req.body.user.password) {
+        const password = req.body.password || req.body.user.password;
+        const hashedPassword = await hashPassword(password);
+        user = {
+          username,
+          password: hashedPassword,
 
-        userType: "AdminUser",
-      };
+          userType: "AdminUser",
+        };
+      } else {
+        user = {
+          username,
+          userType: "AdminUser",
+        };
+      }
       db.query(`update users set ? where id=${id}`, user, (err, result) => {
         if (err) {
           // @ts-ignore
@@ -227,6 +229,26 @@ const hashPassword = async (password) => {
 const userContext = (req, res, next) => {
   return next(new OkResponse(req.user));
 };
+const getPermissions = (req, res, next) => {
+  const { id } = req.params;
+  if (!id) {
+    return next(new BadRequestResponse("Please provide user id", 400));
+  }
+  db.query(`select * from permissions where userId=${id}`, (err, result) => {
+    if (err) {
+      return next(new BadRequestResponse(err, 400));
+    }
+
+    if (result.length > 0) {
+      for (let permission of result) {
+        delete permission.allowRead;
+        delete permission.allowCreate;
+      }
+      return next(new OkResponse(result, 200));
+    }
+    return next(new OkResponse(result, 200));
+  });
+};
 
 const validateBool = (value) => {
   if (value === 0 || value === 1) {
@@ -247,4 +269,5 @@ module.exports = {
   updateUser,
   getAll,
   userContext,
+  getPermissions,
 };
