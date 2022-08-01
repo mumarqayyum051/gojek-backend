@@ -40,12 +40,16 @@ const deletePost = (req, res, next) => {
 
   let isAllowed = false;
   const post = `select * from posts where id = ${id}`;
+  console.log({ post });
   db.query(post, (err, result) => {
     if (err) {
       // @ts-ignore
       return next(new BadRequestResponse(err, 400));
     }
 
+    if (result.length === 0) {
+      return next(new BadRequestResponse("Post not found", 401));
+    }
     const deletePost = () => {
       const query = `delete from posts where id = ${id}`;
       db.query(query, (err, result) => {
@@ -57,14 +61,8 @@ const deletePost = (req, res, next) => {
         return next(new OkResponse("Post has been deleted successfully", 200));
       });
     };
-    console.log(result[0].postedBy == req.authorizedUser.id);
-    console.log(result[0].postedBy, req.authorizedUser.id);
-    if (result.length === 0) {
-      return next(
-        // @ts-ignore
-        new BadRequestResponse("Post not found", 400),
-      );
-    }
+
+    console.log("postedBy", result[0].postedBy);
     if (result[0].postedBy == req.authorizedUser.id) {
       deletePost();
     } else if (req.authorizedUser.allowDelete == 1) {
@@ -104,7 +102,7 @@ const updatePost = (req, res, next) => {
     if (result.length === 0) {
       return next(
         // @ts-ignore
-        new BadRequestResponse("Post not found", 400),
+        new BadRequestResponse("Post not found", 401),
       );
     }
     const updatePost = () => {
@@ -153,10 +151,10 @@ const getAllPosts = (req, res, next) => {
   try {
     let query = "";
     if (req.authorizedUser.allowRead == 1) {
-      query = `select * from posts`;
+      query = `select posts.*,users.username from posts inner join users on posts.postedBy = users.id`;
     }
     if (req.authorizedUser.allowRead == 0) {
-      query = `select * from posts where postedBy = '${req.authorizedUser.userId}'`;
+      query = `select posts.*,users.username  from posts inner join users on posts.postedBy = users.id where postedBy = '${req.authorizedUser.userId}'`;
     }
     db.query(query, (err, result) => {
       if (err) {

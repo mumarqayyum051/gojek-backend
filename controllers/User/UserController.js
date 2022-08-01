@@ -198,7 +198,7 @@ const deleteUser = (req, res, next) => {
 
 // @ts-ignore
 const getAll = (req, res, next) => {
-  const query = `select users.username, users.id, users.userType,permissions.allowRead, permissions.allowCreate, permissions.allowDelete, permissions.allowUpdate, permissions.id as permissionId from users inner join permissions on users.id = permissions.userId`;
+  const query = `select users.username, users.id, users.userType,permissions.allowRead, permissions.allowCreate, permissions.allowDelete, permissions.allowUpdate, permissions.id as permissionId from users inner join permissions on users.id = permissions.userId where users.userType != 'SuperAdmin'`;
   db.query(query, (err, result) => {
     if (err) {
       console.log(err);
